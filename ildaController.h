@@ -27,7 +27,8 @@ public:
     void update(ofEventArgs &a) override{
         setPolylines();
         ildaFrame.update();
-        etherdream->setPoints(ildaFrame);
+        if(etherdream != nullptr)
+            etherdream->setPoints(ildaFrame);
     }
     
     void drawInExternalWindow(ofEventArgs &e) override {draw();};
@@ -43,8 +44,9 @@ private:
     
     ofxEtherdream* etherdream;
     
+    ofParameter<int>    identifier;
     ofParameter<bool>   clear;
-    ofParameter<bool>   resetConnection;
+    ofParameter<void>   resetConnection;
     ofParameter<vector<pair<ofPolyline, ofColor>>> in1;
     ofParameter<vector<pair<ofPolyline, ofColor>>> in2;
     ofParameter<vector<pair<ofPolyline, ofColor>>> in3;
@@ -66,6 +68,8 @@ private:
     ofParameter<ofFloatColor> laserColor;
     ofParameter<glm::vec2> offset;
     ofParameter<glm::vec2> scale;
+    
+    ofEventListeners listeners;
     
 };
 
