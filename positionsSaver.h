@@ -19,6 +19,8 @@ public:
     void setup() override;
     
     void presetHasLoaded() override{
+        bool b = true;
+        loadPositionsListener(b);
         positionToMoveMirrors = positionToMoveMirrors;
         positionToMoveMirrorsAndStaticMirrors = positionToMoveMirrorsAndStaticMirrors;
         positionToStaticMirrors = positionToStaticMirrors;

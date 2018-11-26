@@ -141,11 +141,11 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                     }
                 }
             }
-            if(getParameterValueForPosition(opacity, i) > 0.05){
+            //if(getParameterValueForPosition(opacity, i) > 0.05){
                 for(auto &poly : unitPoly){
                     coloredPolylines.push_back(make_pair(poly, polyColor * getParameterValueForPosition(opacity, i)));
                 }
-            }
+            //}
         }
     }
     someParameterChanged = false;

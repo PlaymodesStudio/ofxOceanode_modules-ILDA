@@ -11,25 +11,26 @@
 
 ildaController::ildaController() : ofxOceanodeNodeModelExternalWindow("Ilda Controller"){
     //setup();
+    etherdream = nullptr;
 }
 
 void ildaController::setup(){
-    etherdream = nullptr;
     ildaFrame.params.output.transform.scale = glm::vec2(1,1);
     
     addOutputParameterToGroupAndInfo(identifier.set("Identifier", 0, 0, 1));
     listeners.push(identifier.newListener([&](int &i){
         etherdream = new ofxEtherdream();
         etherdream->setup(true, i);
-        etherdream->setPPS(30000);
+        etherdream->setPPS(pps);
     }));
     parameters->add(resetConnection.set("Reset Connection"));
     listeners.push(resetConnection.newListener([&](){
-        etherdream->kill();
-        delete etherdream;
-        etherdream = new ofxEtherdream();
-        etherdream->setup(true, identifier);
-        etherdream->setPPS(pps);
+        //etherdream->kill();
+        etherdream->resetup(true);
+//        delete etherdream;
+//        etherdream = new ofxEtherdream();
+//        etherdream->setup(true, identifier);
+//        etherdream->setPPS(pps);
     }));
     parameters->add(clear.set("Clear", false));
     parameters->add(in1.set("Polylines In1", {make_pair(ofPolyline(), ofColor())}));
@@ -37,14 +38,14 @@ void ildaController::setup(){
     parameters->add(in3.set("Polylines In3", {make_pair(ofPolyline(), ofColor())}));
     parameters->add(in4.set("Polylines In4", {make_pair(ofPolyline(), ofColor())}));
     parameters->add(maxOpacity.set("Max Opacity", 1, 0, 1));
-    parameters->add(pps.set("pps", 30000, 500, 100000));
-    parameters->add(pointCount.set("Point Count", 300, 0, 3500));
-    parameters->add(minimumPointCount.set("Min Point Count", 1000, 0, 2500));
-    parameters->add(smoothing.set("Smooth Amount", 0, 0, 10));
-    parameters->add(tolerance.set("Tolerance", 0, 0, 1));
-    parameters->add(doSpacing.set("Do Spacing", true));
-    parameters->add(blankCount.set("Blank Count", 25, 0, 60));
-    parameters->add(endCount.set("End Count", 25, 0, 60));
+    addParameterToGroupAndInfo(pps.set("pps", 30000, 500, 100000));//.isSavePreset = false;
+    addParameterToGroupAndInfo(pointCount.set("Point Count", 300, 0, 3500));//.isSavePreset = false;
+    addParameterToGroupAndInfo(minimumPointCount.set("Min Point Count", 1000, 0, 2500));//.isSavePreset = false;
+    addParameterToGroupAndInfo(smoothing.set("Smooth Amount", 0, 0, 10));//.isSavePreset = false;
+    addParameterToGroupAndInfo(tolerance.set("Tolerance", 0, 0, 1));//.isSavePreset = false;
+    addParameterToGroupAndInfo(doSpacing.set("Do Spacing", true));//.isSavePreset = false;
+    addParameterToGroupAndInfo(blankCount.set("Blank Count", 25, 0, 60));//.isSavePreset = false;
+    addParameterToGroupAndInfo(endCount.set("End Count", 25, 0, 60));//.isSavePreset = false;
     addParameterToGroupAndInfo(flipX.set("Flip X", false));
     addParameterToGroupAndInfo(flipY.set("Flip Y", false));
 //    parameters->add(offset.set("Offset", ofPoint(0,0), ofPoint(-1, 1), ofPoint(-1, 1)));
@@ -69,11 +70,15 @@ void ildaController::setPolylines(){
             ildaFrame.addPoly(poly.first);
         }
     };
-    
-    setPolysFromIn(in1);
-    setPolysFromIn(in2);
-    setPolysFromIn(in3);
-    setPolysFromIn(in4);
+    if(in1->size() == 0 && in2->size() == 0 && in3->size() == 0 && in4->size() == 0){
+        ildaFrame.clear();
+    }
+    else{
+        setPolysFromIn(in1);
+        setPolysFromIn(in2);
+        setPolysFromIn(in3);
+        setPolysFromIn(in4);
+    }
 }
 
 void ildaController::parameterChangedListener(ofAbstractParameter &param){

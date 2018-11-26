@@ -16,7 +16,10 @@
 class ildaController : public ofxOceanodeNodeModelExternalWindow{
 public:
     ildaController();
-    ~ildaController(){};
+    ~ildaController(){
+        if(etherdream != nullptr)
+            delete etherdream;
+    }
     
     void setup() override;
     
