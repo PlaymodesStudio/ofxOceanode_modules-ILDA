@@ -24,6 +24,7 @@ public:
     void setup() override;
     
     void draw(){
+        ofSetBackgroundColor(0);
         ildaFrame.draw(0, 0, ofGetWidth(), ofGetHeight());
     }
     
@@ -69,6 +70,10 @@ private:
     ofParameter<int> smoothing;
     ofParameter<float> tolerance;
     ofParameter<ofFloatColor> laserColor;
+    ofParameter<float> offsetX;
+    ofParameter<float> offsetY;
+    ofParameter<float> scaleX;
+    ofParameter<float> scaleY;
     ofParameter<glm::vec2> offset;
     ofParameter<glm::vec2> scale;
     

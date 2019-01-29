@@ -37,7 +37,7 @@ void ildaController::setup(){
     parameters->add(in2.set("Polylines In2", {make_pair(ofPolyline(), ofColor())}));
     parameters->add(in3.set("Polylines In3", {make_pair(ofPolyline(), ofColor())}));
     parameters->add(in4.set("Polylines In4", {make_pair(ofPolyline(), ofColor())}));
-    parameters->add(maxOpacity.set("Max Opacity", 1, 0, 1));
+    addParameterToGroupAndInfo(maxOpacity.set("Max Opacity", 1, 0, 1));
     addParameterToGroupAndInfo(pps.set("pps", 30000, 500, 100000));//.isSavePreset = false;
     addParameterToGroupAndInfo(pointCount.set("Point Count", 300, 0, 3500));//.isSavePreset = false;
     addParameterToGroupAndInfo(minimumPointCount.set("Min Point Count", 1000, 0, 2500));//.isSavePreset = false;
@@ -48,6 +48,10 @@ void ildaController::setup(){
     addParameterToGroupAndInfo(endCount.set("End Count", 25, 0, 60));//.isSavePreset = false;
     addParameterToGroupAndInfo(flipX.set("Flip X", false));
     addParameterToGroupAndInfo(flipY.set("Flip Y", false));
+    addParameterToGroupAndInfo(offsetX.set("Offset X", 0, -1, 1));
+    addParameterToGroupAndInfo(offsetY.set("Offset Y", 0, -1, 1));
+    addParameterToGroupAndInfo(scaleX.set("Scale X", 1, 0, 2));
+    addParameterToGroupAndInfo(scaleY.set("Scale Y", 1, 0, 2));
 //    parameters->add(offset.set("Offset", ofPoint(0,0), ofPoint(-1, 1), ofPoint(-1, 1)));
 //    parameters->add(scale.set("Scale", ofPoint(1, 1), ofPoint(0,0), ofPoint(1, 1)));
     
@@ -103,10 +107,13 @@ void ildaController::parameterChangedListener(ofAbstractParameter &param){
     ildaFrame.polyProcessor.params.optimizeTolerance=tolerance;
     ildaFrame.polyProcessor.params.spacing=doSpacing;
     
-    ildaFrame.params.output.transform.scale = scale.get();
-    ildaFrame.params.output.transform.offset = offset.get();
-    ildaFrame.params.output.transform.doFlipX = flipX;
-    ildaFrame.params.output.transform.doFlipY = flipY;
+//    ildaFrame.params.output.transform.scale = scale.get();
+//    ildaFrame.params.output.transform.offset = offset.get();
+    ildaFrame.params.output.transform.scale = glm::vec2(scaleX, scaleY);
+    ildaFrame.params.output.transform.offset = glm::vec2(offsetX, offsetY);
+
+    ildaFrame.params.output.transform.doFlipX = !flipX;
+    ildaFrame.params.output.transform.doFlipY = !flipY;
     ildaFrame.params.output.doCapX = capX;
     ildaFrame.params.output.doCapY = capY;
     //ildaFrame.params.output.color = laserColor.get();
