@@ -20,7 +20,7 @@ void graphicPatternGenerator::setup(){
     parameters->add(color_red.set("Red", {1}, {0}, {1}));
     parameters->add(color_green.set("Green", {1}, {0}, {1}));
     parameters->add(color_blue.set("Blue", {1}, {0}, {1}));
-    parameters->add(numVertex.set("Num Vertex", {1}, {1}, {100}));
+    parameters->add(numVertex.set("Num Vertex", {1}, {0}, {100}));
     parameters->add(toCenterFigure.set("To Center", 0, 0, 1));
     parameters->add(scalePositions.set("Scale Pos Vec", {1}, {0}, {1.1}));
     parameters->add(opacity.set("Opacity Vec", {1}, {0}, {1}));
@@ -34,6 +34,7 @@ void graphicPatternGenerator::setup(){
     parameters->add(offsetFollow.set("Offset Follow Vec", {0}, {0}, {1}));
     parameters->add(divisions.set("Divisions Vec", {0}, {0}, {14}));
     parameters->add(divisionSpacing.set("Division Spacing Vec", {0.5}, {0}, {1}));
+    parameters->add(drawOnBlack.set("Draw On Black", true));
     
     parameters->add(polyLinesOut.set("Output", {make_pair(ofPolyline(), ofColor())}));
     
@@ -56,10 +57,16 @@ void graphicPatternGenerator::rgbChanged(vector<float> &f){
 vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
     vector<pair<ofPolyline, ofColor>> coloredPolylines;
     if(true){
+        vector<ofPolyline> unitPoly;
+        unitPoly.resize(1);
+        int indexMonoline = 0;
+        int lastIndexMonoline = 0;
         for(int i = 0 ; i < positions.get().size() * positionReplicator; i++){
             ofFloatColor polyColor = ofFloatColor(getParameterValueForPosition(color_red, i), getParameterValueForPosition(color_green, i), getParameterValueForPosition(color_blue, i));
-            vector<ofPolyline> unitPoly;
-            unitPoly.resize(1);
+            if(numVertex.get() != vector<int>(1, 0)){
+                unitPoly.clear();
+                unitPoly.resize(1);
+            }
             ofPoint position;
             float scaleValue = getParameterValueForPosition(scalePositions, i);
             position.x = ofMap(scaleValue, 0.0, 1.0, 0.5, positions.get()[fmod(i, positions.get().size())].x);
@@ -70,7 +77,16 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                 positionWithJitter.x = position.x + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
                 positionWithJitter.y = position.y + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
             }
-            if(getParameterValueForPosition(numVertex, i) == 1){
+            if(getParameterValueForPosition(numVertex, i) == 0){
+                if(getParameterValueForPosition(opacity, i) != 0){
+                    unitPoly[indexMonoline].addVertex(positionWithJitter);
+                    lastIndexMonoline = indexMonoline;
+                }
+                else if(lastIndexMonoline == indexMonoline){
+                    unitPoly.resize(++indexMonoline + 1);
+                }
+            }
+            else if(getParameterValueForPosition(numVertex, i) == 1){
                 unitPoly[0].addVertex(positionWithJitter - ofPoint(0, 0.0001));
                 unitPoly[0].addVertex(positionWithJitter + ofPoint(0.0001, 0));
                 unitPoly[0].addVertex(positionWithJitter - ofPoint(0.0001, 0));
@@ -105,7 +121,8 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                     ofPoint toCenterPoint = (middleVertex * (1 - toCenterFigure)) + (position * toCenterFigure);
                     unitPoly[0].addVertex(toCenterPoint);
                 }
-                unitPoly[0].close();
+                if(getParameterValueForPosition(numVertex, i) != 2)
+                    unitPoly[0].close();
             }
             
             
@@ -141,13 +158,27 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                     }
                 }
             }
-            //if(getParameterValueForPosition(opacity, i) > 0.05){
-                for(auto &poly : unitPoly){
-                    coloredPolylines.push_back(make_pair(poly, polyColor * getParameterValueForPosition(opacity, i)));
+            if(numVertex.get() != vector<int>(1, 0)){
+                if(getParameterValueForPosition(opacity, i) > 0.05 || drawOnBlack){
+                    for(auto &poly : unitPoly){
+                        if(getParameterValueForPosition(numVertex, i) == 0){
+                            coloredPolylines.push_back(make_pair(poly, polyColor));
+                        }else{
+                            coloredPolylines.push_back(make_pair(poly, polyColor * getParameterValueForPosition(opacity, i)));
+                        }
+                    }
                 }
-            //}
+            }
+        }
+        if(numVertex.get() == vector<int>(1, 0)){
+            for(auto &poly : unitPoly){
+                coloredPolylines.push_back(make_pair(poly, ofFloatColor(color_red->at(0), color_green->at(0), color_blue->at(0))));
+            }
         }
     }
+    
+    
+    
     someParameterChanged = false;
     polyLinesOut = coloredPolylines;
     return coloredPolylines;

@@ -94,6 +94,7 @@ private:
     ofParameter<vector<float>>  offsetFollow;
     ofParameter<vector<int>>  divisions;
     ofParameter<vector<float>>  divisionSpacing;
+    ofParameter<bool> drawOnBlack;
     
     int lastPositionReplicator;
     ofParameter<vector<pair<ofPolyline, ofColor>>> polyLinesOut;
