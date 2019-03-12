@@ -14,14 +14,14 @@ graphicPatternGenerator::graphicPatternGenerator() : ofxOceanodeNodeModelExterna
 
 void graphicPatternGenerator::setup(){
     parameters->add(positions.set("Positions", {ofPoint(0.25, 0.25), ofPoint(0.25, 0.75), ofPoint(0.75, 0.25), ofPoint(0.75, 0.75)}));
-    parameters->add(positionReplicator.set("Position Replicator", 1, 1, 10));
+    parameters->add(positionReplicator.set("Position Replicator", 1, 1, 100));
     lastPositionReplicator = positionReplicator;
     parameters->add(color.set("Color", ofColor::red, ofColor::white, ofColor::black));
     parameters->add(color_red.set("Red", {1}, {0}, {1}));
     parameters->add(color_green.set("Green", {1}, {0}, {1}));
     parameters->add(color_blue.set("Blue", {1}, {0}, {1}));
     parameters->add(numVertex.set("Num Vertex", {1}, {0}, {100}));
-    parameters->add(toCenterFigure.set("To Center", 0, 0, 1));
+    parameters->add(toCenterFigure.set("To Center", {0}, {0}, {1}));
     parameters->add(scalePositions.set("Scale Pos Vec", {1}, {0}, {1.1}));
     parameters->add(opacity.set("Opacity Vec", {1}, {0}, {1}));
     parameters->add(size.set("Size Vec", {0.5}, {0}, {1.5}));
@@ -105,9 +105,9 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                         newVertex.x = newVertex.x + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
                         newVertex.y = newVertex.y + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
                     }
-                    if(lastCreatedVertex != ofPoint(-100, -100) && toCenterFigure != 0){
+                    if(lastCreatedVertex != ofPoint(-100, -100) && getParameterValueForPosition(toCenterFigure, i) != 0){
                         ofPoint middleVertex = (newVertex+lastCreatedVertex) / 2;
-                        ofPoint toCenterPoint = (middleVertex * (1 - toCenterFigure)) + (position * toCenterFigure);
+                        ofPoint toCenterPoint = (middleVertex * (1 - getParameterValueForPosition(toCenterFigure, i))) + (position * getParameterValueForPosition(toCenterFigure, i));
                         unitPoly[0].addVertex(toCenterPoint);
                     }
                     unitPoly[0].addVertex(newVertex);
@@ -116,9 +116,9 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                         firstCreatedPoint = newVertex;
                     }
                 }
-                if(toCenterFigure != 0){
+                if(getParameterValueForPosition(toCenterFigure, i) != 0){
                     ofPoint middleVertex = (newVertex+firstCreatedPoint) / 2;
-                    ofPoint toCenterPoint = (middleVertex * (1 - toCenterFigure)) + (position * toCenterFigure);
+                    ofPoint toCenterPoint = (middleVertex * (1 - getParameterValueForPosition(toCenterFigure, i))) + (position * getParameterValueForPosition(toCenterFigure, i));
                     unitPoly[0].addVertex(toCenterPoint);
                 }
                 if(getParameterValueForPosition(numVertex, i) != 2)
