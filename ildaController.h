@@ -35,6 +35,15 @@ public:
             etherdream->setPoints(ildaFrame);
     }
     
+    void presetHasLoaded() override{
+        in1 = {ofPath()};
+        in2 = {ofPath()};
+        in3 = {ofPath()};
+        in4 = {ofPath()};
+        if(etherdream != nullptr)
+            etherdream->clear();
+    }
+    
     void drawInExternalWindow(ofEventArgs &e) override {draw();};
     
     
@@ -51,10 +60,10 @@ private:
     ofParameter<int>    identifier;
     ofParameter<bool>   clear;
     ofParameter<void>   resetConnection;
-    ofParameter<vector<pair<ofPolyline, ofColor>>> in1;
-    ofParameter<vector<pair<ofPolyline, ofColor>>> in2;
-    ofParameter<vector<pair<ofPolyline, ofColor>>> in3;
-    ofParameter<vector<pair<ofPolyline, ofColor>>> in4;
+    ofParameter<vector<ofPath>> in1;
+    ofParameter<vector<ofPath>> in2;
+    ofParameter<vector<ofPath>> in3;
+    ofParameter<vector<ofPath>> in4;
     ofParameter<float>  maxOpacity;
     ofParameter<int> pps;
     ofParameter<bool> capX;

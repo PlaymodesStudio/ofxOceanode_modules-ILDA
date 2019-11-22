@@ -27,6 +27,7 @@ void graphicPatternGenerator::setup(){
     parameters->add(size.set("Size Vec", {0.5}, {0}, {1.5}));
     parameters->add(rotation.set("Rotation Vec", {0}, {0}, {1}));
     parameters->add(jitter.set("Jitter Vec", {0}, {0}, {1}));
+    parameters->add(modulationType.set("Modulation type", false));
     parameters->add(pointModulation.set("Point Modulation", {0.5}, {0}, {1}));
     parameters->add(modulationAmount.set("Modulation Amount", {0}, {0}, {1}));
     parameters->add(refollowIn.set("Refollow In Vec", {0}, {0}, {1}));
@@ -34,9 +35,11 @@ void graphicPatternGenerator::setup(){
     parameters->add(offsetFollow.set("Offset Follow Vec", {0}, {0}, {1}));
     parameters->add(divisions.set("Divisions Vec", {0}, {0}, {14}));
     parameters->add(divisionSpacing.set("Division Spacing Vec", {0.5}, {0}, {1}));
+    parameters->add(width.set("Line Width", {1}, {0}, {10}));
+    parameters->add(filled.set("Filled", {0}, {0}, {1}));
     parameters->add(drawOnBlack.set("Draw On Black", true));
     
-    parameters->add(polyLinesOut.set("Output", {make_pair(ofPolyline(), ofColor())}));
+    parameters->add(polyLinesOut.set("Output", {ofPath()}));
     
     ofAddListener(parameters->parameterChangedE(), this, &graphicPatternGenerator::parameterChangedListener);
     positions = positions;
@@ -54,18 +57,19 @@ void graphicPatternGenerator::rgbChanged(vector<float> &f){
     color = ofFloatColor(color_red.get()[0], color_green.get()[0], color_blue.get()[0]);
 }
 
-vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
-    vector<pair<ofPolyline, ofColor>> coloredPolylines;
+vector<ofPath> graphicPatternGenerator::computePolylines(){
+    vector<ofPath> paths;
     if(true){
-        vector<ofPolyline> unitPoly;
-        unitPoly.resize(1);
+        vector<ofPath> unitPath;
+        unitPath.resize(1);
+        unitPath[0].setMode(ofPath::POLYLINES);
         int indexMonoline = 0;
         int lastIndexMonoline = 0;
         for(int i = 0 ; i < positions.get().size() * positionReplicator; i++){
             ofFloatColor polyColor = ofFloatColor(getParameterValueForPosition(color_red, i), getParameterValueForPosition(color_green, i), getParameterValueForPosition(color_blue, i));
             if(numVertex.get() != vector<int>(1, 0)){
-                unitPoly.clear();
-                unitPoly.resize(1);
+                unitPath.clear();
+                unitPath.resize(1);
             }
             ofPoint position;
             float scaleValue = getParameterValueForPosition(scalePositions, i);
@@ -79,18 +83,23 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
             }
             if(getParameterValueForPosition(numVertex, i) == 0){
                 if(getParameterValueForPosition(opacity, i) != 0){
-                    unitPoly[indexMonoline].addVertex(positionWithJitter);
+                    if(unitPath[indexMonoline].getOutline()[0].size() == 0){
+                        unitPath[indexMonoline].moveTo(positionWithJitter);
+                    }else{
+                        unitPath[indexMonoline].lineTo(positionWithJitter);
+                    }
+//                    unitPath[indexMonoline].addVertex(positionWithJitter);
                     lastIndexMonoline = indexMonoline;
                 }
                 else if(lastIndexMonoline == indexMonoline){
-                    unitPoly.resize(++indexMonoline + 1);
+                    unitPath.resize(++indexMonoline + 1);
                 }
             }
             else if(getParameterValueForPosition(numVertex, i) == 1){
-                unitPoly[0].addVertex(positionWithJitter - ofPoint(0, 0.0001));
-                unitPoly[0].addVertex(positionWithJitter + ofPoint(0.0001, 0));
-                unitPoly[0].addVertex(positionWithJitter - ofPoint(0.0001, 0));
-                unitPoly[0].addVertex(positionWithJitter + ofPoint(0, 0.0001));
+                unitPath[0].moveTo(positionWithJitter - ofPoint(0, 0.0001));
+                unitPath[0].lineTo(positionWithJitter + ofPoint(0.0001, 0));
+                unitPath[0].lineTo(positionWithJitter - ofPoint(0.0001, 0));
+                unitPath[0].lineTo(positionWithJitter + ofPoint(0, 0.0001));
             }else{
                 ofPoint firstCreatedPoint = ofPoint(-100, -100);
                 ofPoint lastCreatedVertex = ofPoint(-100, -100);
@@ -108,9 +117,17 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                     if(lastCreatedVertex != ofPoint(-100, -100) && getParameterValueForPosition(toCenterFigure, i) != 0){
                         ofPoint middleVertex = (newVertex+lastCreatedVertex) / 2;
                         ofPoint toCenterPoint = (middleVertex * (1 - getParameterValueForPosition(toCenterFigure, i))) + (position * getParameterValueForPosition(toCenterFigure, i));
-                        unitPoly[0].addVertex(toCenterPoint);
+                        if(unitPath[0].getCommands().size() == 0){
+                            unitPath[0].moveTo(toCenterPoint);
+                        }else{
+                            unitPath[0].lineTo(toCenterPoint);
+                        }
                     }
-                    unitPoly[0].addVertex(newVertex);
+                    if(unitPath[0].getCommands().size() == 0){
+                        unitPath[0].moveTo(newVertex);
+                    }else{
+                        unitPath[0].lineTo(newVertex);
+                    }
                     lastCreatedVertex = newVertex;
                     if(firstCreatedPoint == ofPoint(-100, -100)){
                         firstCreatedPoint = newVertex;
@@ -119,60 +136,132 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
                 if(getParameterValueForPosition(toCenterFigure, i) != 0){
                     ofPoint middleVertex = (newVertex+firstCreatedPoint) / 2;
                     ofPoint toCenterPoint = (middleVertex * (1 - getParameterValueForPosition(toCenterFigure, i))) + (position * getParameterValueForPosition(toCenterFigure, i));
-                    unitPoly[0].addVertex(toCenterPoint);
+                    if(unitPath[0].getCommands().size() == 0){
+                        unitPath[0].moveTo(toCenterPoint);
+                    }else{
+                        unitPath[0].lineTo(toCenterPoint);
+                    }
                 }
                 if(getParameterValueForPosition(numVertex, i) != 2)
-                    unitPoly[0].close();
+                    unitPath[0].close();
             }
             
-            
-            if(getParameterValueForPosition(divisions, i) != 0){
-                unitPoly[0] = unitPoly[0].getResampledByCount(200);
-                vector<glm::vec3> polyVertex = unitPoly[0].getVertices();
-                unitPoly[0].clear();
-                int polySize = polyVertex.size();
-                unitPoly.resize(getParameterValueForPosition(divisions, i));
-                for(int d = 0; d < getParameterValueForPosition(divisions, i) ; d++){
-                    ofPolyline tempPoly;
-                    float increment = 1.0/(float)(((float)getParameterValueForPosition(divisions, i)*2.0)-1);
-                    float start = (d * 2 * increment) * getParameterValueForPosition(endFollow, i);
-                    float end = start + (increment * getParameterValueForPosition(divisionSpacing, i) * 2 * getParameterValueForPosition(endFollow, i));
-                    for(int j = start * polySize; j < end * polySize ; j++){
-                        int jj = j + ((getParameterValueForPosition(refollowIn, i) + getParameterValueForPosition(offsetFollow, i)) * polySize);
-                        jj = jj % polySize;
-                        tempPoly.addVertex(polyVertex[jj]);
+            if(numVertex.get().size() == 1 && numVertex.get()[0] > 1 && getParameterValueForPosition(modulationAmount, i) != 0){
+                vector<ofPolyline> polylines = unitPath[0].getOutline();
+                int modulationSize = ((pointModulation.get().size() / positions.get().size()) / positionReplicator) / polylines.size();
+                if(modulationSize >= polylines[0].getVertices().size()){
+                    unitPath[0].clear();
+                    bool newPoly = true;
+                    for(int d = 0; d < polylines.size(); d++){
+                        ofPolyline polyRes = polylines[d].getResampledByCount(modulationSize);
+                        for(int j = 0; j < min(int(polyRes.size()), modulationSize); j++){
+                            glm::vec3 poly = polyRes.getVertices()[j];
+                            if(!modulationType){ //radial modulation
+                                poly = poly + (glm::normalize(poly - toGlm(position)) * ((pointModulation.get()[(((i*polylines.size())+d)*modulationSize) + j]-0.5) * getParameterValueForPosition(modulationAmount, i) * getParameterValueForPosition(size, i)));
+                            }else{ //Tangent modulation
+                                bool reverse = false;
+                                int leftPointIndex = j-1;
+                                if(leftPointIndex < 0){
+                                    leftPointIndex = polyRes.size()-1;
+                                    reverse = true;
+                                }
+                                
+                                int rightPointIndex = j+1;
+                                if(rightPointIndex > polyRes.size()-1){
+                                    rightPointIndex = 0;
+                                    reverse = true;
+                                }
+                                
+                                glm::vec3 leftPoint = polyRes.getVertices()[leftPointIndex];
+                                glm::vec3 rightPoint = polyRes.getVertices()[rightPointIndex];
+                                
+                                glm::vec3 leftToRight = (rightPoint - leftPoint);
+                                
+                                glm::vec3 perpendicular = glm::vec3(-leftToRight.y, leftToRight.x, 0);
+                                if(reverse){
+                                    perpendicular = glm::vec3(leftToRight.y, -leftToRight.x, 0);
+                                }
+                                
+                                poly = poly + (glm::normalize(perpendicular) * ((pointModulation.get()[(((i*polylines.size())+d)*modulationSize) + j]-0.5) * getParameterValueForPosition(modulationAmount, i) * getParameterValueForPosition(size, i)));
+                            }
+                            if(newPoly){
+                                unitPath[0].moveTo(poly);
+                                newPoly = false;
+                            }else{
+                                unitPath[0].lineTo(poly);
+                            }
+                        }
+                        if(polyRes.isClosed()){
+                            unitPath[0].close();
+                        }
+                        newPoly = true;
                     }
-                    unitPoly[d] = tempPoly;
-//                    coloredPolylines.push_back(make_pair(tempPoly, polyColor * getParameterValueForPosition(opacity, i)));
                 }
             }
-            if(numVertex.get().size() == 1 && numVertex.get()[0] != 1 && getParameterValueForPosition(modulationAmount, i) != 0){
-                int modulationSize = ((pointModulation.get().size() / positions.get().size()) / positionReplicator) / unitPoly.size();
-                if(modulationSize >= unitPoly[0].getVertices().size()){
-                    for(int d = 0; d < unitPoly.size(); d++){
-                        unitPoly[d] = unitPoly[d].getResampledByCount(modulationSize);
-                        for(int j = 0; j < modulationSize; j++){
-                            auto &poly = unitPoly[d].getVertices()[j];
-                            poly = poly + (glm::normalize(poly - toGlm(position)) * ((pointModulation.get()[(((i*unitPoly.size())+d)*modulationSize) + j]-0.5) * getParameterValueForPosition(modulationAmount, i) * getParameterValueForPosition(size, i)));
+            int divisionAtIndex = getParameterValueForPosition(divisions, i);
+            if(divisionAtIndex != 0 && numVertex.get()[0] > 1){
+                for(int ii = 0 ; ii < unitPath.size(); ii++){
+                    auto resampledPoly = unitPath[ii].getOutline()[0];
+                    if(resampledPoly.getVertices().size() < 400){
+                        resampledPoly = resampledPoly.getResampledByCount(400);
+                    }
+                    vector<glm::vec3> polyVertex = resampledPoly.getVertices();
+                    unitPath[ii].clear();
+                    int polySize = polyVertex.size();
+                    //unitPath.resize(getParameterValueForPosition(divisions, i));
+                    bool newPoly = true;
+                    for(int d = 0; d < getParameterValueForPosition(divisions, i) ; d++){
+                        float increment = 1.0/(float)(((float)getParameterValueForPosition(divisions, i)*2.0)-1);
+                        float start = (d * 2 * increment) * getParameterValueForPosition(endFollow, i);
+                        float end = start + (increment * getParameterValueForPosition(divisionSpacing, i) * 2 * getParameterValueForPosition(endFollow, i));
+                        for(int j = start * polySize; j < end * polySize ; j++){
+                            int jj = j + ((getParameterValueForPosition(refollowIn, i) + getParameterValueForPosition(offsetFollow, i)) * polySize);
+                            jj = jj % polySize;
+                            if(newPoly){
+                                unitPath[ii].moveTo(polyVertex[jj]);
+                                newPoly = false;
+                            }
+                            else
+                                unitPath[ii].lineTo(polyVertex[jj]);
                         }
+                        newPoly = true;
                     }
                 }
             }
             if(numVertex.get() != vector<int>(1, 0)){
                 if(getParameterValueForPosition(opacity, i) > 0.05 || drawOnBlack){
-                    for(auto &poly : unitPoly){
+                    for(auto &poly : unitPath){
                         if(getParameterValueForPosition(numVertex, i) == 0){
-                            coloredPolylines.push_back(make_pair(poly, polyColor));
+                            poly.setColor(polyColor);
                         }else{
-                            coloredPolylines.push_back(make_pair(poly, polyColor * getParameterValueForPosition(opacity, i)));
+                            poly.setColor(ofFloatColor(polyColor, getParameterValueForPosition(opacity, i)));
                         }
+                        if(getParameterValueForPosition(filled, i) == 0){
+                            poly.setFilled(false);
+                        }
+                        else{
+                            poly.setFilled(true);
+                            poly.setFillColor(ofFloatColor(polyColor, getParameterValueForPosition(filled, 0)));
+                        }
+                        poly.setStrokeWidth(getParameterValueForPosition(width, i));
+                        paths.push_back(poly);
                     }
                 }
             }
         }
         if(numVertex.get() == vector<int>(1, 0)){
-            for(auto &poly : unitPoly){
-                coloredPolylines.push_back(make_pair(poly, ofFloatColor(color_red->at(0), color_green->at(0), color_blue->at(0))));
+            for(auto &poly : unitPath){
+                auto color = ofFloatColor(color_red->at(0), color_green->at(0), color_blue->at(0), opacity->at(0));
+                poly.setColor(color);
+                if(getParameterValueForPosition(filled, 0) == 0){
+                    poly.setFilled(false);
+                }
+                else{
+                    poly.setFilled(true);
+                    poly.setFillColor(ofFloatColor(color, getParameterValueForPosition(filled, 0)));
+                }
+                poly.setStrokeWidth(getParameterValueForPosition(width, 0));
+                paths.push_back(poly);
             }
         }
     }
@@ -180,8 +269,8 @@ vector<pair<ofPolyline, ofColor>> graphicPatternGenerator::computePolylines(){
     
     
     someParameterChanged = false;
-    polyLinesOut = coloredPolylines;
-    return coloredPolylines;
+    polyLinesOut = paths;
+    return paths;
 }
 
 void graphicPatternGenerator::parameterChangedListener(ofAbstractParameter &parameter){

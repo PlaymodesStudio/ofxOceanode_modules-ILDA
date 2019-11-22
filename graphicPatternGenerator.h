@@ -29,6 +29,7 @@ public:
     }
     
     virtual void presetRecallBeforeSettingParameters(ofJson &json) override{
+        opacity = vector<float>(1, 0);
         if(json.count("Position_points") == 1){
             vector<string> positionsStrVec = ofSplitString(json["Position_points"], "_|_");
             vector<ofPoint> newPositions;
@@ -49,10 +50,8 @@ public:
     void mouseReleased(ofMouseEventArgs &a) override;
     void mouseDragged(ofMouseEventArgs &a) override;
     
-    vector<pair<ofPolyline, ofColor>> computePolylines();
-    
-    ofParameterGroup* getGroup(){return parameters;};
-    
+    vector<ofPath> computePolylines();
+        
 private:
     void parameterChangedListener(ofAbstractParameter &parameter);
     int pointDraggingIndex;
@@ -87,6 +86,7 @@ private:
     ofParameter<vector<float>> size;
     ofParameter<vector<float>> rotation;
     ofParameter<vector<float>> jitter;
+    ofParameter<bool> modulationType;
     ofParameter<vector<float>> pointModulation;
     ofParameter<vector<float>> modulationAmount;
     ofParameter<vector<float>>  refollowIn;
@@ -94,10 +94,12 @@ private:
     ofParameter<vector<float>>  offsetFollow;
     ofParameter<vector<int>>  divisions;
     ofParameter<vector<float>>  divisionSpacing;
+    ofParameter<vector<float>> width;
+    ofParameter<vector<float>> filled;
     ofParameter<bool> drawOnBlack;
     
     int lastPositionReplicator;
-    ofParameter<vector<pair<ofPolyline, ofColor>>> polyLinesOut;
+    ofParameter<vector<ofPath>> polyLinesOut;
 };
 
 #endif /* graphicPatternGenerator_h */
