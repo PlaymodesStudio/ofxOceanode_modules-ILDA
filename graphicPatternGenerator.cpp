@@ -13,7 +13,7 @@ graphicPatternGenerator::graphicPatternGenerator() : ofxOceanodeNodeModelExterna
 }
 
 void graphicPatternGenerator::setup(){
-    parameters->add(positions.set("Positions", {ofPoint(0.25, 0.25), ofPoint(0.25, 0.75), ofPoint(0.75, 0.25), ofPoint(0.75, 0.75)}));
+    parameters->add(positions.set("Positions", {glm::vec3(0.5, 0.5, 1)}));
     parameters->add(positionReplicator.set("Position Replicator", 1, 1, 100));
     lastPositionReplicator = positionReplicator;
     parameters->add(color.set("Color", ofColor::red, ofColor::white, ofColor::black));
@@ -38,8 +38,13 @@ void graphicPatternGenerator::setup(){
     parameters->add(width.set("Line Width", {1}, {0}, {10}));
     parameters->add(filled.set("Filled", {0}, {0}, {1}));
     parameters->add(drawOnBlack.set("Draw On Black", true));
+    parameters->add(reloadShader.set("Reload Shader"));
     
-    parameters->add(polyLinesOut.set("Output", {ofPath()}));
+    listeners.push(reloadShader.newListener([this](){
+        setupShader();
+    }));
+    
+    parameters->add(output.set("Output", &vbo));
     
     ofAddListener(parameters->parameterChangedE(), this, &graphicPatternGenerator::parameterChangedListener);
     positions = positions;
@@ -51,6 +56,9 @@ void graphicPatternGenerator::setup(){
     someParameterChanged = true;
     
     pointDraggingIndex = -1;
+    
+    setupShader();
+    buffer.resize(2);
 }
 
 void graphicPatternGenerator::rgbChanged(vector<float> &f){
@@ -269,8 +277,75 @@ vector<ofPath> graphicPatternGenerator::computePolylines(){
     
     
     someParameterChanged = false;
-    polyLinesOut = paths;
     return paths;
+}
+
+void graphicPatternGenerator::setupShader(){
+    // We only need a vertex shader since we are only using the
+    // shader to store the modified vertices in a buffer
+    ofShader::TransformFeedbackSettings settings;
+    settings.shaderFiles[GL_VERTEX_SHADER] = "vert.glsl";
+    settings.shaderFiles[GL_GEOMETRY_SHADER] = "geom.glsl";
+    settings.bindDefaults = false;
+    settings.varyingsToCapture = {"v_position", "v_color"};
+    settings.bufferMode = GL_SEPARATE_ATTRIBS;
+    
+    shader.setup(settings);
+}
+
+void graphicPatternGenerator::computeShader(){
+    
+    // allocate enough space for all the vertices in a gpu buffer
+    buffer[0].allocate(sizeof(glm::vec3) * positions->size() * 100, GL_STATIC_DRAW);
+    buffer[1].allocate(sizeof(glm::vec4) * positions->size() * 100, GL_STATIC_DRAW);
+    
+    ofMesh sMesh;
+    sMesh.setMode(OF_PRIMITIVE_POINTS);
+    sMesh.addVertices(positions.get());
+    vector<ofFloatColor> colors(positions->size());
+    for(int i = 0; i < colors.size(); i++){
+        colors[i].r = color_red->size() == colors.size() ? color_red->at(i) : color_red->at(0);
+        colors[i].g = color_green->size() == colors.size() ? color_green->at(i) : color_green->at(0);
+        colors[i].b = color_blue->size() == colors.size() ? color_blue->at(i) : color_blue->at(0);
+    }
+    sMesh.addColors(colors);
+//    for(int i = 0 ; i < positions.get().size() * positionReplicator; i++){
+//        glm::vec3 position;
+//        float scaleValue = getParameterValueForPosition(scalePositions, i);
+//        position.x = ofMap(scaleValue, 0.0, 1.0, 0.5, positions.get()[fmod(i, positions.get().size())].x);
+//        position.y = ofMap(scaleValue, 0.0, 1.0, 0.5, positions.get()[fmod(i, positions.get().size())].y);
+//        position.z = 1;
+//        sMesh.addVertex(position);
+//    }
+    //mesh = sMesh;
+    
+    
+    vector<ofShader::TransformFeedbackBaseBinding> transfeedbackbuffers;
+    transfeedbackbuffers.emplace_back(buffer[0]);
+    transfeedbackbuffers.emplace_back(buffer[1]);
+    transfeedbackbuffers[1].index = 1;
+    // bind the full buffer using glBindBaseBuffer to default index 0
+    // and draw the mesh which will end up stored in our buffer
+    shader.beginTransformFeedback(GL_POINTS, transfeedbackbuffers);
+    sMesh.draw();
+    shader.endTransformFeedback(transfeedbackbuffers);
+    
+    
+    
+    // more fine grained control with range bindings:
+    // ofShader::TransformFeedbackRangeBinding binding(buffer);
+    // binding.index = 0;
+    // binding.offset = 0;
+    // binding.size = numVertices * sizeof(glm::vec4) * 2;
+    // shader.beginTransformFeedback(GL_POINTS, binding);
+    
+    // now set the buffer as vertices and colors in the vbo
+    // by specifying the stride and offsets
+    // since we have position and color both as 4 coordinates:
+    // 4 coordinates position at offset 0
+    vbo.setVertexBuffer(buffer[0], 3, sizeof(glm::vec3), 0);
+    // color at offset sizeof(glm::vec4)
+    vbo.setColorBuffer(buffer[1], sizeof(glm::vec4), 0);
 }
 
 void graphicPatternGenerator::parameterChangedListener(ofAbstractParameter &parameter){
@@ -290,14 +365,14 @@ void graphicPatternGenerator::draw(){
         ofDrawCircle(x, y, 20);
         ofSetColor(255,0,0);
         string s = ofToString(i);
-        ofDrawBitmapString(s, x, y);
+        //ofDrawBitmapString(s, x, y);
     }
 }
 
 void graphicPatternGenerator::mousePressed(ofMouseEventArgs &a){
     bool foundPoint = false;
     for(int i = 0; i < positions.get().size() && !foundPoint ; i++){
-        auto point = positions.get()[i] * ofPoint(ofGetWidth(), ofGetHeight());
+        auto point = positions.get()[i] * glm::vec3(ofGetWidth(), ofGetHeight(), 1.0);
         if(ofRectangle(point.x - 20, point.y - 20, 40, 40).inside(a)){
             pointDraggingIndex = i;
             foundPoint = true;
@@ -305,14 +380,14 @@ void graphicPatternGenerator::mousePressed(ofMouseEventArgs &a){
     }
     if(ofGetKeyPressed(OF_KEY_SHIFT)){
         if(foundPoint){
-            vector<ofPoint> positionsCopy = positions;
+            vector<glm::vec3> positionsCopy = positions;
             positionsCopy.erase(positionsCopy.begin() + pointDraggingIndex);
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            parameters->get("Positions").cast<vector<glm::vec3>>().set(positionsCopy);
             pointDraggingIndex = -1;
         }else{
-            vector<ofPoint> positionsCopy = positions;
+            vector<glm::vec3> positionsCopy = positions;
             positionsCopy.push_back(ofPoint(a.x / ofGetWidth(), a.y/ofGetHeight()));
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            parameters->get("Positions").cast<vector<glm::vec3>>().set(positionsCopy);
         }
     }
 }
@@ -326,13 +401,13 @@ void graphicPatternGenerator::mouseDragged(ofMouseEventArgs &a){
         if(ofGetKeyPressed(OF_KEY_ALT)){
             ofPoint oldPos = positions.get()[pointDraggingIndex];
             ofPoint step = oldPos - (a / ofPoint((float)ofGetWidth(), (float)ofGetHeight()));
-            vector<ofPoint> positionsCopy = positions;
+            vector<glm::vec3> positionsCopy = positions;
             positionsCopy[pointDraggingIndex] = oldPos - (step/100);
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            parameters->get("Positions").cast<vector<glm::vec3>>().set(positionsCopy);
         }else{
-            vector<ofPoint> positionsCopy = positions;
-            positionsCopy[pointDraggingIndex] = a / ofPoint(ofGetWidth(), ofGetHeight());
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            vector<glm::vec3> positionsCopy = positions;
+            positionsCopy[pointDraggingIndex] = glm::vec3(a, 1) / glm::vec3(ofGetWidth(), ofGetHeight(), 1);
+            parameters->get("Positions").cast<vector<glm::vec3>>().set(positionsCopy);
         }
     }
 }

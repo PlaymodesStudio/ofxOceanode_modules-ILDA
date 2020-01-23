@@ -32,16 +32,20 @@ public:
         opacity = vector<float>(1, 0);
         if(json.count("Position_points") == 1){
             vector<string> positionsStrVec = ofSplitString(json["Position_points"], "_|_");
-            vector<ofPoint> newPositions;
+            vector<glm::vec3> newPositions;
             newPositions.resize(positionsStrVec.size());
             for(int i = 0; i < newPositions.size(); i++){
-                newPositions[i] = ofFromString<ofPoint>(positionsStrVec[i]);
+                newPositions[i] = ofFromString<glm::vec3>(positionsStrVec[i]);
             }
             positions = newPositions;
         }
     }
     
-    void update(ofEventArgs &a) override {computePolylines();};
+    void update(ofEventArgs &a) override {
+        //polylinesout = computePolylines();
+        computeShader();
+        output = output;
+    };
     
     void draw();
     void drawInExternalWindow(ofEventArgs &e) override {draw();};
@@ -51,6 +55,8 @@ public:
     void mouseDragged(ofMouseEventArgs &a) override;
     
     vector<ofPath> computePolylines();
+    void setupShader();
+    void computeShader();
         
 private:
     void parameterChangedListener(ofAbstractParameter &parameter);
@@ -72,7 +78,7 @@ private:
     
     ofEventListeners listeners;
     
-    ofParameter<vector<ofPoint>> positions;
+    ofParameter<vector<glm::vec3>> positions;
     ofParameter<int>    positionReplicator;
     ofParameter<ofColor> color;
     ofParameter<vector<float>> color_red;
@@ -97,9 +103,14 @@ private:
     ofParameter<vector<float>> width;
     ofParameter<vector<float>> filled;
     ofParameter<bool> drawOnBlack;
+    ofParameter<void> reloadShader;
     
     int lastPositionReplicator;
-    ofParameter<vector<ofPath>> polyLinesOut;
+    ofParameter<ofVbo*> output;
+    
+    ofVbo vbo;
+    ofShader shader;
+    vector<ofBufferObject> buffer;
 };
 
 #endif /* graphicPatternGenerator_h */

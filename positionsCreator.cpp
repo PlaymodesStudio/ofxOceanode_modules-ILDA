@@ -15,7 +15,8 @@ positionsCreator::positionsCreator() : ofxOceanodeNodeModel("Positions Creator")
 void positionsCreator::setup(){
     parameters->add(positionX.set("X", {0.5}, {0}, {1}));
     parameters->add(positionY.set("Y", {0.5}, {0}, {1}));
-    parameters->add(output.set("Output", {ofPoint()}));
+    parameters->add(positionZ.set("Z", {1}, {0}, {1}));
+    parameters->add(output.set("Output", {glm::vec3(0.0)}));
 
     
     listeners.push(positionX.newListener(this, &positionsCreator::calculateOutput));
@@ -25,24 +26,24 @@ void positionsCreator::setup(){
 
 void positionsCreator::calculateOutput(vector<float> &vf){
     if(positionX->size() == positionY->size()){
-        vector<ofPoint> points;
+        vector<glm::vec3> points;
         points.resize(positionX->size());
         for(int i = 0; i < points.size(); i++){
-            points[i] = ofPoint(positionX.get()[i], positionY.get()[i]);
+            points[i] = glm::vec3(positionX.get()[i], positionY.get()[i], positionZ.get()[0]);
         }
         output = points;
     }else if(positionX->size() > positionY->size()){
-        vector<ofPoint> points;
+        vector<glm::vec3> points;
         points.resize(positionX->size());
         for(int i = 0; i < points.size(); i++){
-            points[i] = ofPoint(positionX.get()[i], positionY.get()[0]);
+            points[i] = glm::vec3(positionX.get()[i], positionY.get()[0], positionZ.get()[0]);
         }
         output = points;
     }else if(positionX->size() < positionY->size()){
-        vector<ofPoint> points;
+        vector<glm::vec3> points;
         points.resize(positionX->size());
         for(int i = 0; i < points.size(); i++){
-            points[i] = ofPoint(positionX.get()[0], positionY.get()[i]);
+            points[i] = glm::vec3(positionX.get()[0], positionY.get()[i], positionZ.get()[0]);
         }
         output = points;
     }
