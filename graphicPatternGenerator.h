@@ -11,6 +11,7 @@
 
 #include "ofMain.h"
 #include "ofxOceanodeNodeModelExternalWindow.h"
+#include "ofxSvg.h"
 
 class graphicPatternGenerator : public ofxOceanodeNodeModelExternalWindow{
 public:
@@ -81,6 +82,8 @@ private:
     ofParameter<vector<float>> toCenterFigure;
     
     ofParameter<vector<int>>   numVertex;
+    ofParameter<string> svgFile;
+    ofParameter<string> svgSize;
     ofParameter<vector<float>> scalePositions;
     ofParameter<vector<float>> opacity;
     ofParameter<vector<float>> size;
@@ -100,6 +103,9 @@ private:
     
     int lastPositionReplicator;
     ofParameter<vector<ofPath>> polyLinesOut;
+    
+    ofxSVG svg;
+    bool isSvgLoaded = false;
 };
 
 #endif /* graphicPatternGenerator_h */

@@ -20,6 +20,8 @@ void graphicPatternGenerator::setup(){
     parameters->add(color_red.set("Red", {1}, {0}, {1}));
     parameters->add(color_green.set("Green", {1}, {0}, {1}));
     parameters->add(color_blue.set("Blue", {1}, {0}, {1}));
+    parameters->add(svgFile.set("SVG File", ""));
+    parameters->add(svgSize.set("SVG Size", "0"));
     parameters->add(numVertex.set("Num Vertex", {1}, {0}, {100}));
     parameters->add(toCenterFigure.set("To Center", {0}, {0}, {1}));
     parameters->add(scalePositions.set("Scale Pos Vec", {1}, {0}, {1.1}));
@@ -48,6 +50,17 @@ void graphicPatternGenerator::setup(){
     listeners.push(color_green.newListener(this, &graphicPatternGenerator::rgbChanged));
     listeners.push(color_blue.newListener(this, &graphicPatternGenerator::rgbChanged));
     
+    listeners.push(svgFile.newListener([this](string &s){
+        if(s == ""){
+            isSvgLoaded = false;
+            svgSize = "0";
+        }else{
+            svg.load(s);
+            if(svg.getNumPath() != 0) isSvgLoaded = true;
+            svgSize = ofToString(svg.getNumPath());
+        }
+    }));
+    
     someParameterChanged = true;
     
     pointDraggingIndex = -1;
@@ -62,15 +75,12 @@ vector<ofPath> graphicPatternGenerator::computePolylines(){
     if(true){
         vector<ofPath> unitPath;
         unitPath.resize(1);
-        unitPath[0].setMode(ofPath::POLYLINES);
+        //unitPath[0].setMode(ofPath::POLYLINES);
         int indexMonoline = 0;
         int lastIndexMonoline = 0;
-        for(int i = 0 ; i < positions.get().size() * positionReplicator; i++){
+        int numElements = isSvgLoaded ? svg.getNumPath() : positions.get().size();
+        for(int i = 0 ; i < numElements * positionReplicator; i++){
             ofFloatColor polyColor = ofFloatColor(getParameterValueForPosition(color_red, i), getParameterValueForPosition(color_green, i), getParameterValueForPosition(color_blue, i));
-            if(numVertex.get() != vector<int>(1, 0)){
-                unitPath.clear();
-                unitPath.resize(1);
-            }
             ofPoint position;
             float scaleValue = getParameterValueForPosition(scalePositions, i);
             position.x = ofMap(scaleValue, 0.0, 1.0, 0.5, positions.get()[fmod(i, positions.get().size())].x);
@@ -81,41 +91,89 @@ vector<ofPath> graphicPatternGenerator::computePolylines(){
                 positionWithJitter.x = position.x + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
                 positionWithJitter.y = position.y + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
             }
-            if(getParameterValueForPosition(numVertex, i) == 0){
-                if(getParameterValueForPosition(opacity, i) != 0){
-                    if(unitPath[indexMonoline].getOutline()[0].size() == 0){
-                        unitPath[indexMonoline].moveTo(positionWithJitter);
-                    }else{
-                        unitPath[indexMonoline].lineTo(positionWithJitter);
+            if(isSvgLoaded){
+                unitPath.clear();
+                unitPath.resize(1);
+                ofPath tempSVGPath = svg.getPathAt(i);
+                    tempSVGPath.setPolyWindingMode(OF_POLY_WINDING_ODD);
+                    bool newOutlinePath = true;
+                    for(auto &outline : tempSVGPath.getOutline()){
+                        ofPolyline poly = outline;
+                        for(auto &point : poly.getVertices()){
+                            point = point / glm::vec3(svg.getWidth(), svg.getHeight(), 1);
+                            point -= .5;
+                            if(getParameterValueForPosition(rotation, i) != 0)
+                                point = glm::rotate(point, getParameterValueForPosition(rotation, i)*2*(float)M_PI, glm::vec3(0,0,1));
+                            point *= getParameterValueForPosition(size, i);
+                            point += (glm::vec3(positionWithJitter));
+                            if(newOutlinePath){
+                                unitPath[0].moveTo(point);
+                                newOutlinePath = false;
+                            }else{
+                                unitPath[0].lineTo(point);
+                            }
+                        }
                     }
-//                    unitPath[indexMonoline].addVertex(positionWithJitter);
-                    lastIndexMonoline = indexMonoline;
-                }
-                else if(lastIndexMonoline == indexMonoline){
-                    unitPath.resize(++indexMonoline + 1);
-                }
-            }
-            else if(getParameterValueForPosition(numVertex, i) == 1){
-                unitPath[0].moveTo(positionWithJitter - ofPoint(0, 0.0001));
-                unitPath[0].lineTo(positionWithJitter + ofPoint(0.0001, 0));
-                unitPath[0].lineTo(positionWithJitter - ofPoint(0.0001, 0));
-                unitPath[0].lineTo(positionWithJitter + ofPoint(0, 0.0001));
+                
             }else{
-                ofPoint firstCreatedPoint = ofPoint(-100, -100);
-                ofPoint lastCreatedVertex = ofPoint(-100, -100);
-                ofPoint newVertex;
-                int counter = 0;
-                for(float j = 0 ; j < 1 ; j = j + (1.0/(float)getParameterValueForPosition(numVertex, i))){
-                    float jj = j + getParameterValueForPosition(rotation, i);
-                    
-                    newVertex.x = (sin(jj*2*PI)*getParameterValueForPosition(size, i)/2)+position.x;
-                    newVertex.y = (cos(jj*2*PI)*getParameterValueForPosition(size, i)/2)+position.y;
-                    if(jitterValue != 0){
-                        newVertex.x = newVertex.x + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
-                        newVertex.y = newVertex.y + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
+                if(numVertex.get() != vector<int>(1, 0)){
+                    unitPath.clear();
+                    unitPath.resize(1);
+                }
+                if(getParameterValueForPosition(numVertex, i) == 0){
+                    if(getParameterValueForPosition(opacity, i) != 0){
+                        if(unitPath[indexMonoline].getOutline()[0].size() == 0){
+                            unitPath[indexMonoline].moveTo(positionWithJitter);
+                        }else{
+                            unitPath[indexMonoline].lineTo(positionWithJitter);
+                        }
+                        //                    unitPath[indexMonoline].addVertex(positionWithJitter);
+                        lastIndexMonoline = indexMonoline;
                     }
-                    if(lastCreatedVertex != ofPoint(-100, -100) && getParameterValueForPosition(toCenterFigure, i) != 0){
-                        ofPoint middleVertex = (newVertex+lastCreatedVertex) / 2;
+                    else if(lastIndexMonoline == indexMonoline){
+                        unitPath.resize(++indexMonoline + 1);
+                    }
+                }
+                else if(getParameterValueForPosition(numVertex, i) == 1){
+                    unitPath[0].moveTo(positionWithJitter - ofPoint(0, 0.0001));
+                    unitPath[0].lineTo(positionWithJitter + ofPoint(0.0001, 0));
+                    unitPath[0].lineTo(positionWithJitter - ofPoint(0.0001, 0));
+                    unitPath[0].lineTo(positionWithJitter + ofPoint(0, 0.0001));
+                }else{
+                    ofPoint firstCreatedPoint = ofPoint(-100, -100);
+                    ofPoint lastCreatedVertex = ofPoint(-100, -100);
+                    ofPoint newVertex;
+                    int counter = 0;
+                    for(float j = 0 ; j < 1 ; j = j + (1.0/(float)getParameterValueForPosition(numVertex, i))){
+                        float jj = j + getParameterValueForPosition(rotation, i);
+                        
+                        newVertex.x = (sin(jj*2*PI)*getParameterValueForPosition(size, i)/2)+position.x;
+                        newVertex.y = (cos(jj*2*PI)*getParameterValueForPosition(size, i)/2)+position.y;
+                        if(jitterValue != 0){
+                            newVertex.x = newVertex.x + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
+                            newVertex.y = newVertex.y + ofRandom(-jitterValue*0.05, + jitterValue*0.05);
+                        }
+                        if(lastCreatedVertex != ofPoint(-100, -100) && getParameterValueForPosition(toCenterFigure, i) != 0){
+                            ofPoint middleVertex = (newVertex+lastCreatedVertex) / 2;
+                            ofPoint toCenterPoint = (middleVertex * (1 - getParameterValueForPosition(toCenterFigure, i))) + (position * getParameterValueForPosition(toCenterFigure, i));
+                            if(unitPath[0].getCommands().size() == 0){
+                                unitPath[0].moveTo(toCenterPoint);
+                            }else{
+                                unitPath[0].lineTo(toCenterPoint);
+                            }
+                        }
+                        if(unitPath[0].getCommands().size() == 0){
+                            unitPath[0].moveTo(newVertex);
+                        }else{
+                            unitPath[0].lineTo(newVertex);
+                        }
+                        lastCreatedVertex = newVertex;
+                        if(firstCreatedPoint == ofPoint(-100, -100)){
+                            firstCreatedPoint = newVertex;
+                        }
+                    }
+                    if(getParameterValueForPosition(toCenterFigure, i) != 0){
+                        ofPoint middleVertex = (newVertex+firstCreatedPoint) / 2;
                         ofPoint toCenterPoint = (middleVertex * (1 - getParameterValueForPosition(toCenterFigure, i))) + (position * getParameterValueForPosition(toCenterFigure, i));
                         if(unitPath[0].getCommands().size() == 0){
                             unitPath[0].moveTo(toCenterPoint);
@@ -123,27 +181,9 @@ vector<ofPath> graphicPatternGenerator::computePolylines(){
                             unitPath[0].lineTo(toCenterPoint);
                         }
                     }
-                    if(unitPath[0].getCommands().size() == 0){
-                        unitPath[0].moveTo(newVertex);
-                    }else{
-                        unitPath[0].lineTo(newVertex);
-                    }
-                    lastCreatedVertex = newVertex;
-                    if(firstCreatedPoint == ofPoint(-100, -100)){
-                        firstCreatedPoint = newVertex;
-                    }
+                    if(getParameterValueForPosition(numVertex, i) != 2)
+                        unitPath[0].close();
                 }
-                if(getParameterValueForPosition(toCenterFigure, i) != 0){
-                    ofPoint middleVertex = (newVertex+firstCreatedPoint) / 2;
-                    ofPoint toCenterPoint = (middleVertex * (1 - getParameterValueForPosition(toCenterFigure, i))) + (position * getParameterValueForPosition(toCenterFigure, i));
-                    if(unitPath[0].getCommands().size() == 0){
-                        unitPath[0].moveTo(toCenterPoint);
-                    }else{
-                        unitPath[0].lineTo(toCenterPoint);
-                    }
-                }
-                if(getParameterValueForPosition(numVertex, i) != 2)
-                    unitPath[0].close();
             }
             
             if(numVertex.get().size() == 1 && numVertex.get()[0] > 1 && getParameterValueForPosition(modulationAmount, i) != 0){
@@ -241,7 +281,7 @@ vector<ofPath> graphicPatternGenerator::computePolylines(){
                         }
                         else{
                             poly.setFilled(true);
-                            poly.setFillColor(ofFloatColor(polyColor, getParameterValueForPosition(filled, 0)));
+                            poly.setFillColor(ofFloatColor(polyColor, getParameterValueForPosition(filled, i)));
                         }
                         poly.setStrokeWidth(getParameterValueForPosition(width, i));
                         paths.push_back(poly);
