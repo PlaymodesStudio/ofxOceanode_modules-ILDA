@@ -111,6 +111,31 @@ private:
     ofVbo vbo;
     ofShader shader;
     vector<ofBufferObject> buffer;
+    
+    int totalSize;
+    
+    //TBO
+    ofTexture               shaderIntTexture;
+    ofBufferObject          shaderIntBuffer;
+    
+    ofTexture               shaderFloatTexture;
+    ofBufferObject          shaderFloatBuffer;
+    
+    map<string, int> shaderIntParameterNameTBOPositionMap;
+    map<string, int> shaderFloatParameterNameTBOPositionMap;
+    
+    map<string, int> shaderParameterNameTBOSizeMap;
+    
+    void setShaderParameterDataToTBO();
+    void setShaderFloatParameterDataToTBO();
+    
+    void setParametersInfoMaps();
+    
+    vector<pair<string, vector<int>>> changedShaderIntParameters;
+    vector<pair<string, vector<float>>> changedShaderFloatParameters;
+    
+    unsigned int shaderIntParametersTextureLocation;
+    unsigned int shaderFloatParametersTextureLocation;
 };
 
 #endif /* graphicPatternGenerator_h */

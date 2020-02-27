@@ -7,6 +7,7 @@
 //
 
 #include "graphicPatternGenerator.h"
+#include "sharedResources.h"
 
 graphicPatternGenerator::graphicPatternGenerator() : ofxOceanodeNodeModelExternalWindow("Graphic Generator"){
     //setup();
@@ -44,6 +45,14 @@ void graphicPatternGenerator::setup(){
         setupShader();
     }));
     
+    listeners.push(numVertex.newListener([this](vector<int> &p){
+        changedShaderIntParameters.emplace_back(numVertex.getName(), p);
+    }));
+    
+    listeners.push(size.newListener([this](vector<float> &p){
+        changedShaderFloatParameters.emplace_back(size.getName(), p);
+    }));
+    
     parameters->add(output.set("Output", &vbo));
     
     ofAddListener(parameters->parameterChangedE(), this, &graphicPatternGenerator::parameterChangedListener);
@@ -59,6 +68,8 @@ void graphicPatternGenerator::setup(){
     
     setupShader();
     buffer.resize(2);
+    
+    totalSize = positions.get().size() * positionReplicator;
 }
 
 void graphicPatternGenerator::rgbChanged(vector<float> &f){
@@ -281,6 +292,19 @@ vector<ofPath> graphicPatternGenerator::computePolylines(){
 }
 
 void graphicPatternGenerator::setupShader(){
+    //TBOs
+    
+    //OSCILLATOR SHADER INT
+    shaderIntBuffer.allocate();
+    shaderFloatBuffer.allocate();
+    shaderIntBuffer.bind(GL_TEXTURE_BUFFER);
+    shaderFloatBuffer.bind(GL_TEXTURE_BUFFER);
+    setShaderParameterDataToTBO();
+    shaderIntTexture.allocateAsBufferTexture(shaderIntBuffer, GL_R32UI);
+    shaderFloatTexture.allocateAsBufferTexture(shaderFloatBuffer, GL_R32F);
+
+    
+    
     // We only need a vertex shader since we are only using the
     // shader to store the modified vertices in a buffer
     ofShader::TransformFeedbackSettings settings;
@@ -291,13 +315,149 @@ void graphicPatternGenerator::setupShader(){
     settings.bufferMode = GL_SEPARATE_ATTRIBS;
     
     shader.setup(settings);
+    
+    shaderIntParametersTextureLocation = sharedResources::getInstance().getNextAvailableShaderTextureLocation();
+    shaderFloatParametersTextureLocation = sharedResources::getInstance().getNextAvailableShaderTextureLocation();
+    
+    shader.begin();
+    shader.setUniformTexture("intParameters", shaderIntTexture, shaderIntParametersTextureLocation);
+    shader.setUniformTexture("floatParameters", shaderFloatTexture, shaderFloatParametersTextureLocation);
+    shader.end();
 }
 
+void graphicPatternGenerator::setShaderParameterDataToTBO(){
+    vector<int> accumulateParametersShaderIntParameters;
+    vector<float> accumulateParametersShaderFloatParameters;
+    
+    int currentSize = positions.get().size() * positionReplicator;
+    for(auto &p : *parameters){
+        if(p->type() == typeid(ofParameter<vector<int>>).name()){
+            vector<int> tempVec(currentSize, p->cast<vector<int>>().get()[0]);
+            accumulateParametersShaderIntParameters.insert(accumulateParametersShaderIntParameters.end(), tempVec.begin(), tempVec.end());
+        }else if(p->type() == typeid(ofParameter<vector<float>>).name()){
+            vector<float> tempVec(currentSize, p->cast<vector<float>>().get()[0]);
+            accumulateParametersShaderFloatParameters.insert(accumulateParametersShaderFloatParameters.end(), tempVec.begin(), tempVec.end());
+        }
+    }
+    
+//    vector<int> numVertex_tempVec(positions.get().size() * positionReplicator, numVertex.get()[0]);
+//    accumulateParametersShaderIntParameters.insert(accumulateParametersShaderIntParameters.end(), numVertex_tempVec.begin(), numVertex_tempVec.end());
+    
+    shaderIntBuffer.setData(accumulateParametersShaderIntParameters, GL_STREAM_DRAW);
+    shaderFloatBuffer.setData(accumulateParametersShaderFloatParameters, GL_STREAM_DRAW);
+}
+
+void graphicPatternGenerator::setShaderFloatParameterDataToTBO(){
+    vector<float> accumulateParametersShaderFloatParameters;
+    
+    vector<float> size_tempVec(positions.get().size() * positionReplicator, size.get()[0]);
+    accumulateParametersShaderFloatParameters.insert(accumulateParametersShaderFloatParameters.end(), size_tempVec.begin(), size_tempVec.end());
+//    vector<float> indexNumWavesY_tempVec(width, indexNumWaves[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexNumWavesY_tempVec.begin(), indexNumWavesY_tempVec.end());
+//
+//    vector<float> indexInvertX_tempVec(height, indexInvert[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexInvertX_tempVec.begin(), indexInvertX_tempVec.end());
+//    vector<float> indexInvertY_tempVec(width, indexInvert[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexInvertY_tempVec.begin(), indexInvertY_tempVec.end());
+//
+//    vector<float> indexRandomX_tempVec(height, indexRandom[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexRandomX_tempVec.begin(), indexRandomX_tempVec.end());
+//    vector<float> indexRandomY_tempVec(width, indexRandom[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexRandomY_tempVec.begin(), indexRandomY_tempVec.end());
+//
+//    vector<float> indexOffsetX_tempVec(height, indexOffset[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexOffsetX_tempVec.begin(), indexOffsetX_tempVec.end());
+//    vector<float> indexOffsetY_tempVec(width, indexOffset[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexOffsetY_tempVec.begin(), indexOffsetY_tempVec.end());
+//
+//    vector<float> indexCombinationX_tempVec(height, indexCombination[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexCombinationX_tempVec.begin(), indexCombinationX_tempVec.end());
+//    vector<float> indexCombinationY_tempVec(width, indexCombination[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), indexCombinationY_tempVec.begin(), indexCombinationY_tempVec.end());
+//
+//    vector<float> phaseOffsetX_tempVec(width, phaseOffset[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), phaseOffsetX_tempVec.begin(), phaseOffsetX_tempVec.end());
+//    vector<float> phaseOffsetY_tempVec(height, phaseOffset[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), phaseOffsetY_tempVec.begin(), phaseOffsetY_tempVec.end());
+//
+//    vector<float> pulseWidthX_tempVec(width, pulseWidth[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), pulseWidthX_tempVec.begin(), pulseWidthX_tempVec.end());
+//    vector<float> pulseWidthY_tempVec(height, pulseWidth[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), pulseWidthY_tempVec.begin(), pulseWidthY_tempVec.end());
+//
+//    vector<float> skewX_tempVec(width, skew[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), skewX_tempVec.begin(), skewX_tempVec.end());
+//    vector<float> skewY_tempVec(height, skew[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), skewY_tempVec.begin(), skewY_tempVec.end());
+//
+//    vector<float> waveformX_tempVec(width, waveform[0].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), waveformX_tempVec.begin(), waveformX_tempVec.end());
+//    vector<float> waveformY_tempVec(height, waveform[1].get()[0]);
+//    accumulateParametersOscillatorShaderFloatParameters.insert(accumulateParametersOscillatorShaderFloatParameters.end(), waveformY_tempVec.begin(), waveformY_tempVec.end());
+    
+    shaderFloatBuffer.setData(accumulateParametersShaderFloatParameters, GL_STREAM_DRAW);
+}
+
+void graphicPatternGenerator::setParametersInfoMaps(){
+//    int dimensionsSum = width+height
+    int currentSize = positions.get().size() * positionReplicator;
+    int intCount = 0;
+    int floatCount = 0;
+    for(auto &p : *parameters){
+        if(p->type() == typeid(ofParameter<vector<int>>).name()){
+            shaderIntParameterNameTBOPositionMap[p->getName()] = currentSize*intCount;
+            shaderParameterNameTBOSizeMap[p->getName()] = currentSize;
+            intCount++;
+        }else if(p->type() == typeid(ofParameter<vector<float>>).name()){
+            shaderFloatParameterNameTBOPositionMap[p->getName()] = currentSize*floatCount;
+            shaderParameterNameTBOSizeMap[p->getName()] = currentSize;
+            floatCount++;
+        }
+    }
+    
+//    shaderFloatParameterNameTBOPositionMap[size.getName()] = 0;
+//    shaderParameterNameTBOSizeMap[size.getName()] = positions.get().size() * positionReplicator;
+//
+//    shaderIntParameterNameTBOPositionMap[numVertex.getName()] = 0;
+//    shaderParameterNameTBOSizeMap[numVertex.getName()] = positions.get().size() * positionReplicator;
+}
+
+
 void graphicPatternGenerator::computeShader(){
+    if(totalSize != positions.get().size() * positionReplicator){
+        setParametersInfoMaps();
+        setShaderParameterDataToTBO();
+//        setShaderFloatParameterDataToTBO();
+    }
+    totalSize = positions.get().size() * positionReplicator;
+    
+    for(auto &parameter : changedShaderIntParameters){
+        vector<int> &vi = parameter.second;
+        int position = shaderIntParameterNameTBOPositionMap[parameter.first];
+        int size = shaderParameterNameTBOSizeMap[parameter.first];
+        if(vi.size() == size){
+            shaderIntBuffer.updateData(position*4, vi);
+        }else{
+            shaderIntBuffer.updateData(position*4, vector<int>(size, vi[0]));
+        }
+    }
+    changedShaderIntParameters.clear();
+    
+    for(auto &parameter : changedShaderFloatParameters){
+        vector<float> &vf = parameter.second;
+        int position = shaderFloatParameterNameTBOPositionMap[parameter.first];
+        int size = shaderParameterNameTBOSizeMap[parameter.first];
+        if(vf.size() == size){
+            shaderFloatBuffer.updateData(position*4, vf);
+        }else{
+            shaderFloatBuffer.updateData(position*4, vector<float>(size, vf[0]));
+        }
+    }
+    changedShaderFloatParameters.clear();
     
     // allocate enough space for all the vertices in a gpu buffer
-    buffer[0].allocate(sizeof(glm::vec3) * positions->size() * 100, GL_STATIC_DRAW);
-    buffer[1].allocate(sizeof(glm::vec4) * positions->size() * 100, GL_STATIC_DRAW);
+    buffer[0].allocate(sizeof(glm::vec3) * positions->size() * 256, GL_STATIC_DRAW);
+    buffer[1].allocate(sizeof(glm::vec4) * positions->size() * 256, GL_STATIC_DRAW);
     
     ofMesh sMesh;
     sMesh.setMode(OF_PRIMITIVE_POINTS);
@@ -327,6 +487,7 @@ void graphicPatternGenerator::computeShader(){
     // bind the full buffer using glBindBaseBuffer to default index 0
     // and draw the mesh which will end up stored in our buffer
     shader.beginTransformFeedback(GL_POINTS, transfeedbackbuffers);
+    shader.setUniform1i("numPositions", totalSize);
     sMesh.draw();
     shader.endTransformFeedback(transfeedbackbuffers);
     
@@ -350,6 +511,13 @@ void graphicPatternGenerator::computeShader(){
 
 void graphicPatternGenerator::parameterChangedListener(ofAbstractParameter &parameter){
     someParameterChanged = true;
+    for(auto &p : *parameters){
+        if(p->type() == typeid(ofParameter<vector<int>>).name()){
+            changedShaderIntParameters.emplace_back(p->getName(), p->cast<vector<int>>().get());
+        }else if(p->type() == typeid(ofParameter<vector<float>>).name()){
+            changedShaderFloatParameters.emplace_back(p->getName(), p->cast<vector<float>>().get());
+        }
+    }
 }
 
 
@@ -411,3 +579,4 @@ void graphicPatternGenerator::mouseDragged(ofMouseEventArgs &a){
         }
     }
 }
+
