@@ -42,7 +42,17 @@ public:
         }
     }
     
-    void update(ofEventArgs &a) override {computePolylines();};
+    void update(ofEventArgs &a) override {
+        if(svgFile.get() == ""){
+            isSvgLoaded = false;
+            svgSize = "0";
+        }else{
+            svg.load(svgFile);
+            if(svg.getNumPath() != 0) isSvgLoaded = true;
+            svgSize = ofToString(svg.getNumPath());
+        }
+        computePolylines();
+    };
     
     void draw();
     void drawInExternalWindow(ofEventArgs &e) override {draw();};
@@ -75,7 +85,7 @@ private:
     
     ofParameter<vector<ofPoint>> positions;
     ofParameter<int>    positionReplicator;
-    ofParameter<ofColor> color;
+    ofParameter<ofFloatColor> color;
     ofParameter<vector<float>> color_red;
     ofParameter<vector<float>> color_green;
     ofParameter<vector<float>> color_blue;

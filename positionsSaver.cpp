@@ -9,12 +9,12 @@
 #include "positionsSaver.h"
 
 void positionSaver::setup(){
-    parameters->add(savePositions.set("Save Positions", false));
-    parameters->add(loadPositions.set("Load Positions", false));
-    parameters->add(positionToMoveMirrors.set("Mov Mirrors", {ofPoint()}));
-    parameters->add(positionToMoveMirrorsAndStaticMirrors.set("Mov and Static Mirrors", {ofPoint()}));
-    parameters->add(positionToStaticMirrors.set("Static Mirrors", {ofPoint()}));
-    parameters->add(positionToCenter.set("Center", {ofPoint()}));
+    addParameter(savePositions.set("Save Positions", false));
+    addParameter(loadPositions.set("Load Positions", false));
+    addParameter(positionToMoveMirrors.set("Mov Mirrors", {ofPoint()}));
+    addParameter(positionToMoveMirrorsAndStaticMirrors.set("Mov and Static Mirrors", {ofPoint()}));
+    addParameter(positionToStaticMirrors.set("Static Mirrors", {ofPoint()}));
+    addParameter(positionToCenter.set("Center", {ofPoint()}));
     
     savePositions.addListener(this, &positionSaver::savePositionsListener);
     loadPositions.addListener(this, &positionSaver::loadPositionsListener);

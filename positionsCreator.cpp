@@ -13,9 +13,9 @@ positionsCreator::positionsCreator() : ofxOceanodeNodeModel("Positions Creator")
 
 
 void positionsCreator::setup(){
-    parameters->add(positionX.set("X", {0.5}, {0}, {1}));
-    parameters->add(positionY.set("Y", {0.5}, {0}, {1}));
-    parameters->add(output.set("Output", {ofPoint()}));
+    addParameter(positionX.set("X", {0.5}, {0}, {1}));
+    addParameter(positionY.set("Y", {0.5}, {0}, {1}));
+    addParameter(output.set("Output", {ofPoint()}));
 
     
     listeners.push(positionX.newListener(this, &positionsCreator::calculateOutput));

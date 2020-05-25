@@ -13,37 +13,37 @@ graphicPatternGenerator::graphicPatternGenerator() : ofxOceanodeNodeModelExterna
 }
 
 void graphicPatternGenerator::setup(){
-    parameters->add(positions.set("Positions", {ofPoint(0.25, 0.25), ofPoint(0.25, 0.75), ofPoint(0.75, 0.25), ofPoint(0.75, 0.75)}));
-    parameters->add(positionReplicator.set("Position Replicator", 1, 1, 100));
+    addParameter(positions.set("Positions", {ofPoint(0.25, 0.25), ofPoint(0.25, 0.75), ofPoint(0.75, 0.25), ofPoint(0.75, 0.75)}));
+    addParameter(positionReplicator.set("Position Replicator", 1, 1, 100));
     lastPositionReplicator = positionReplicator;
-    parameters->add(color.set("Color", ofColor::red, ofColor::white, ofColor::black));
-    parameters->add(color_red.set("Red", {1}, {0}, {1}));
-    parameters->add(color_green.set("Green", {1}, {0}, {1}));
-    parameters->add(color_blue.set("Blue", {1}, {0}, {1}));
-    parameters->add(svgFile.set("SVG File", ""));
-    parameters->add(svgSize.set("SVG Size", "0"));
-    parameters->add(numVertex.set("Num Vertex", {1}, {0}, {100}));
-    parameters->add(toCenterFigure.set("To Center", {0}, {0}, {1}));
-    parameters->add(scalePositions.set("Scale Pos Vec", {1}, {0}, {1.1}));
-    parameters->add(opacity.set("Opacity Vec", {1}, {0}, {1}));
-    parameters->add(size.set("Size Vec", {0.5}, {0}, {1.5}));
-    parameters->add(rotation.set("Rotation Vec", {0}, {0}, {1}));
-    parameters->add(jitter.set("Jitter Vec", {0}, {0}, {1}));
-    parameters->add(modulationType.set("Modulation type", false));
-    parameters->add(pointModulation.set("Point Modulation", {0.5}, {0}, {1}));
-    parameters->add(modulationAmount.set("Modulation Amount", {0}, {0}, {1}));
-    parameters->add(refollowIn.set("Refollow In Vec", {0}, {0}, {1}));
-    parameters->add(endFollow.set("End Follow Vec", {1}, {0}, {1}));
-    parameters->add(offsetFollow.set("Offset Follow Vec", {0}, {0}, {1}));
-    parameters->add(divisions.set("Divisions Vec", {0}, {0}, {14}));
-    parameters->add(divisionSpacing.set("Division Spacing Vec", {0.5}, {0}, {1}));
-    parameters->add(width.set("Line Width", {1}, {0}, {10}));
-    parameters->add(filled.set("Filled", {0}, {0}, {1}));
-    parameters->add(drawOnBlack.set("Draw On Black", true));
+    addParameter(color.set("Color", ofFloatColor::red, ofFloatColor::white, ofFloatColor::black));
+    addParameter(color_red.set("Red", {1}, {0}, {1}));
+    addParameter(color_green.set("Green", {1}, {0}, {1}));
+    addParameter(color_blue.set("Blue", {1}, {0}, {1}));
+    addParameter(svgFile.set("SVG File", ""));
+    addParameter(svgSize.set("SVG Size", "0"));
+    addParameter(numVertex.set("Num Vertex", {1}, {0}, {100}));
+    addParameter(toCenterFigure.set("To Center", {0}, {0}, {1}));
+    addParameter(scalePositions.set("Scale Pos Vec", {1}, {0}, {1.1}));
+    addParameter(opacity.set("Opacity Vec", {1}, {0}, {1}));
+    addParameter(size.set("Size Vec", {0.5}, {0}, {1.5}));
+    addParameter(rotation.set("Rotation Vec", {0}, {0}, {1}));
+    addParameter(jitter.set("Jitter Vec", {0}, {0}, {1}));
+    addParameter(modulationType.set("Modulation type", false));
+    addParameter(pointModulation.set("Point Modulation", {0.5}, {0}, {1}));
+    addParameter(modulationAmount.set("Modulation Amount", {0}, {0}, {1}));
+    addParameter(refollowIn.set("Refollow In Vec", {0}, {0}, {1}));
+    addParameter(endFollow.set("End Follow Vec", {1}, {0}, {1}));
+    addParameter(offsetFollow.set("Offset Follow Vec", {0}, {0}, {1}));
+    addParameter(divisions.set("Divisions Vec", {0}, {0}, {14}));
+    addParameter(divisionSpacing.set("Division Spacing Vec", {0.5}, {0}, {1}));
+    addParameter(width.set("Line Width", {1}, {0}, {10}));
+    addParameter(filled.set("Filled", {0}, {0}, {1}));
+    addParameter(drawOnBlack.set("Draw On Black", true));
     
-    parameters->add(polyLinesOut.set("Output", {ofPath()}));
+    addParameter(polyLinesOut.set("Output", {ofPath()}));
     
-    ofAddListener(parameters->parameterChangedE(), this, &graphicPatternGenerator::parameterChangedListener);
+//    ofAddListener(parameters->parameterChangedE(), this, &graphicPatternGenerator::parameterChangedListener);
     positions = positions;
     
     listeners.push(color_red.newListener(this, &graphicPatternGenerator::rgbChanged));
@@ -51,19 +51,20 @@ void graphicPatternGenerator::setup(){
     listeners.push(color_blue.newListener(this, &graphicPatternGenerator::rgbChanged));
     
     listeners.push(svgFile.newListener([this](string &s){
-        if(s == ""){
-            isSvgLoaded = false;
-            svgSize = "0";
-        }else{
-            svg.load(s);
-            if(svg.getNumPath() != 0) isSvgLoaded = true;
-            svgSize = ofToString(svg.getNumPath());
-        }
+//        if(s == ""){
+//            isSvgLoaded = false;
+//            svgSize = "0";
+//        }else{
+//            svg.load(s);
+//            if(svg.getNumPath() != 0) isSvgLoaded = true;
+//            svgSize = ofToString(svg.getNumPath());
+//        }
     }));
     
     someParameterChanged = true;
     
     pointDraggingIndex = -1;
+    isSvgLoaded = false;
 }
 
 void graphicPatternGenerator::rgbChanged(vector<float> &f){
@@ -347,12 +348,12 @@ void graphicPatternGenerator::mousePressed(ofMouseEventArgs &a){
         if(foundPoint){
             vector<ofPoint> positionsCopy = positions;
             positionsCopy.erase(positionsCopy.begin() + pointDraggingIndex);
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            positions.set(positionsCopy);
             pointDraggingIndex = -1;
         }else{
             vector<ofPoint> positionsCopy = positions;
             positionsCopy.push_back(ofPoint(a.x / ofGetWidth(), a.y/ofGetHeight()));
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            positions.set(positionsCopy);
         }
     }
 }
@@ -368,11 +369,11 @@ void graphicPatternGenerator::mouseDragged(ofMouseEventArgs &a){
             ofPoint step = oldPos - (a / ofPoint((float)ofGetWidth(), (float)ofGetHeight()));
             vector<ofPoint> positionsCopy = positions;
             positionsCopy[pointDraggingIndex] = oldPos - (step/100);
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            positions.set(positionsCopy);
         }else{
             vector<ofPoint> positionsCopy = positions;
             positionsCopy[pointDraggingIndex] = a / ofPoint(ofGetWidth(), ofGetHeight());
-            parameters->get("Positions").cast<vector<ofPoint>>().set(positionsCopy);
+            positions.set(positionsCopy);
         }
     }
 }

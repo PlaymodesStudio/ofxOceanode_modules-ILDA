@@ -16,9 +16,9 @@ public:
     ~positionsRotator(){};
     
     void setup() override{
-        parameters->add(input.set("Input", {ofPoint()}));
-        parameters->add(rotation.set("Rotation", 0, 0, 1));
-        parameters->add(output.set("Output", {ofPoint()}));
+        addParameter(input.set("Input", {ofPoint()}));
+        addParameter(rotation.set("Rotation", 0, 0, 1));
+        addParameter(output.set("Output", {ofPoint()}));
         
         listener = input.newListener([&](vector<ofPoint> &points){
             vector<ofPoint> tempOut;

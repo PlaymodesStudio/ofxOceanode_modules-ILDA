@@ -17,13 +17,13 @@ ildaController::ildaController() : ofxOceanodeNodeModelExternalWindow("Ilda Cont
 void ildaController::setup(){
     ildaFrame.params.output.transform.scale = glm::vec2(1,1);
     
-    addOutputParameterToGroupAndInfo(identifier.set("Identifier", 0, 0, 1)).isSavePreset = false;
+    addOutputParameter(identifier.set("Identifier", 0, 0, 1), ofxOceanodeParameterFlags_DisableSavePreset);
     listeners.push(identifier.newListener([&](int &i){
         etherdream = new ofxEtherdream();
         etherdream->setup(true, i);
         etherdream->setPPS(pps);
     }));
-    parameters->add(resetConnection.set("Reset Connection"));
+    addParameter(resetConnection.set("Reset Connection"));
     listeners.push(resetConnection.newListener([&](){
         //etherdream->kill();
         etherdream->resetup(true);
@@ -32,30 +32,30 @@ void ildaController::setup(){
 //        etherdream->setup(true, identifier);
 //        etherdream->setPPS(pps);
     }));
-    parameters->add(clear.set("Clear", false));
-    parameters->add(in1.set("Polylines In1", {ofPath()}));
-    parameters->add(in2.set("Polylines In2", {ofPath()}));
-    parameters->add(in3.set("Polylines In3", {ofPath()}));
-    parameters->add(in4.set("Polylines In4", {ofPath()}));
-    addParameterToGroupAndInfo(maxOpacity.set("Max Opacity", 1, 0, 1)).isSavePreset = false;
-    addParameterToGroupAndInfo(pps.set("pps", 30000, 500, 100000));//.isSavePreset = false;
-    addParameterToGroupAndInfo(pointCount.set("Point Count", 300, 0, 3500));//.isSavePreset = false;
-    addParameterToGroupAndInfo(minimumPointCount.set("Min Point Count", 1000, 0, 2500));//.isSavePreset = false;
-    addParameterToGroupAndInfo(smoothing.set("Smooth Amount", 0, 0, 10));//.isSavePreset = false;
-    addParameterToGroupAndInfo(tolerance.set("Tolerance", 0, 0, 1));//.isSavePreset = false;
-    addParameterToGroupAndInfo(doSpacing.set("Do Spacing", true));//.isSavePreset = false;
-    addParameterToGroupAndInfo(blankCount.set("Blank Count", 25, 0, 60));//.isSavePreset = false;
-    addParameterToGroupAndInfo(endCount.set("End Count", 25, 0, 60));//.isSavePreset = false;
-    addParameterToGroupAndInfo(flipX.set("Flip X", false));
-    addParameterToGroupAndInfo(flipY.set("Flip Y", false));
-    addParameterToGroupAndInfo(offsetX.set("Offset X", 0, -1, 1)).isSavePreset = false;
-    addParameterToGroupAndInfo(offsetY.set("Offset Y", 0, -1, 1)).isSavePreset = false;
-    addParameterToGroupAndInfo(scaleX.set("Scale X", 1, 0, 2)).isSavePreset = false;
-    addParameterToGroupAndInfo(scaleY.set("Scale Y", 1, 0, 2)).isSavePreset = false;
-//    parameters->add(offset.set("Offset", ofPoint(0,0), ofPoint(-1, 1), ofPoint(-1, 1)));
-//    parameters->add(scale.set("Scale", ofPoint(1, 1), ofPoint(0,0), ofPoint(1, 1)));
+    addParameter(clear.set("Clear", false));
+    addParameter(in1.set("Polylines In1", {ofPath()}));
+    addParameter(in2.set("Polylines In2", {ofPath()}));
+    addParameter(in3.set("Polylines In3", {ofPath()}));
+    addParameter(in4.set("Polylines In4", {ofPath()}));
+    addParameter(maxOpacity.set("Max Opacity", 1, 0, 1), ofxOceanodeParameterFlags_DisableSavePreset);
+    addParameter(pps.set("pps", 30000, 500, 100000));//.isSavePreset = false;
+    addParameter(pointCount.set("Point Count", 300, 0, 3500));//.isSavePreset = false;
+    addParameter(minimumPointCount.set("Min Point Count", 1000, 0, 2500));//.isSavePreset = false;
+    addParameter(smoothing.set("Smooth Amount", 0, 0, 10));//.isSavePreset = false;
+    addParameter(tolerance.set("Tolerance", 0, 0, 1));//.isSavePreset = false;
+    addParameter(doSpacing.set("Do Spacing", true));//.isSavePreset = false;
+    addParameter(blankCount.set("Blank Count", 25, 0, 60));//.isSavePreset = false;
+    addParameter(endCount.set("End Count", 25, 0, 60));//.isSavePreset = false;
+    addParameter(flipX.set("Flip X", false));
+    addParameter(flipY.set("Flip Y", false));
+    addParameter(offsetX.set("Offset X", 0, -1, 1), ofxOceanodeParameterFlags_DisableSavePreset);
+    addParameter(offsetY.set("Offset Y", 0, -1, 1), ofxOceanodeParameterFlags_DisableSavePreset);
+    addParameter(scaleX.set("Scale X", 1, 0, 2), ofxOceanodeParameterFlags_DisableSavePreset);
+    addParameter(scaleY.set("Scale Y", 1, 0, 2), ofxOceanodeParameterFlags_DisableSavePreset);
+//    addParameter(offset.set("Offset", ofPoint(0,0), ofPoint(-1, 1), ofPoint(-1, 1)));
+//    addParameter(scale.set("Scale", ofPoint(1, 1), ofPoint(0,0), ofPoint(1, 1)));
     
-    ofAddListener(parameters->parameterChangedE(), this, &ildaController::parameterChangedListener);
+    ofAddListener(getParameterGroup().parameterChangedE(), this, &ildaController::parameterChangedListener);
 //    etherdream = new ofxEtherdream();
 //    etherdream->setup(true, 0);
 //    etherdream->setPPS(pps);
@@ -75,7 +75,7 @@ void ildaController::setPolylines(){
     auto setPolysFromIn = [this](ofParameter<vector<ofPath>> pairVec){
         for(auto path : pairVec.get()){
             for(auto poly : path.getOutline()){
-                ildaFrame.params.output.color = path.getStrokeColor() * ((path.getStrokeColor().a * maxOpacity)/255.0);
+                ildaFrame.params.output.color = ofFloatColor(path.getStrokeColor()) * maxOpacity;// * ((path.getStrokeColor().a * maxOpacity)/255.0);
                 ildaFrame.addPoly(poly);
             }
         }
