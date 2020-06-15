@@ -75,7 +75,7 @@ void ildaController::setPolylines(){
     auto setPolysFromIn = [this](ofParameter<vector<ofPath>> pairVec){
         for(auto path : pairVec.get()){
             for(auto poly : path.getOutline()){
-                ildaFrame.params.output.color = ofFloatColor(path.getStrokeColor()) * maxOpacity;// * ((path.getStrokeColor().a * maxOpacity)/255.0);
+                ildaFrame.params.output.color = ofFloatColor(path.getStrokeColor()) * ((float)path.getStrokeColor().a/255.0) * maxOpacity;// * ((path.getStrokeColor().a * maxOpacity)/255.0);
                 ildaFrame.addPoly(poly);
             }
         }
