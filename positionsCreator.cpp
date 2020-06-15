@@ -15,6 +15,7 @@ positionsCreator::positionsCreator() : ofxOceanodeNodeModel("Positions Creator")
 void positionsCreator::setup(){
     addParameter(positionX.set("X", {0.5}, {0}, {1}));
     addParameter(positionY.set("Y", {0.5}, {0}, {1}));
+    addParameter(close.set("Close", false));
     addParameter(output.set("Output", {ofPoint()}));
 
     
@@ -26,24 +27,27 @@ void positionsCreator::setup(){
 void positionsCreator::calculateOutput(vector<float> &vf){
     if(positionX->size() == positionY->size()){
         vector<ofPoint> points;
-        points.resize(positionX->size());
+        points.resize(close ? positionX->size() + 1 : positionX->size());
         for(int i = 0; i < points.size(); i++){
             points[i] = ofPoint(positionX.get()[i], positionY.get()[i]);
         }
+        if(close) points.back() = points.front();
         output = points;
     }else if(positionX->size() > positionY->size()){
         vector<ofPoint> points;
-        points.resize(positionX->size());
+        points.resize(close ? positionX->size() + 1 : positionX->size());
         for(int i = 0; i < points.size(); i++){
             points[i] = ofPoint(positionX.get()[i], positionY.get()[0]);
         }
+        if(close) points.back() = points.front();
         output = points;
     }else if(positionX->size() < positionY->size()){
         vector<ofPoint> points;
-        points.resize(positionX->size());
+        points.resize(close ? positionY->size() + 1 : positionY->size());
         for(int i = 0; i < points.size(); i++){
             points[i] = ofPoint(positionX.get()[0], positionY.get()[i]);
         }
+        if(close) points.back() = points.front();
         output = points;
     }
 }

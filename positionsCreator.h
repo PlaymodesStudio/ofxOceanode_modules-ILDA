@@ -23,6 +23,7 @@ private:
     
     ofParameter<vector<float>> positionX;
     ofParameter<vector<float>> positionY;
+    ofParameter<bool>   close;
     ofParameter<vector<ofPoint>> output;
 };
 
